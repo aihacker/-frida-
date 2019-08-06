@@ -1,0 +1,270 @@
+
+================================================================================================================
+
+	如果FD抓不到则用HTPP抓,如果有反代理就用反代理抓包
+
+	登录包：
+
+	data=%7B%22user_name%22%3A%2218017874679%22%2C%22password%22%3A%2218017874679%22%7D&sign=B4F39692D8FEDDEC286E5BE9BE479DA0
+	&channel=myapp_32&client=android&type=1&deviceid=866070246425041&timestamp=1563632256112&token=
+
+	FROM :
+	data：{"user_name":"18017874679","password":"18017874679"}
+	sign=B4F39692D8FEDDEC286E5BE9BE479DA0
+	channel=myapp_32
+	client=android
+	type=1
+	deviceid=866070246425041
+	timestamp=1563632256112
+	token=
+
+	data 是账号密码的明文
+	sign 是签名 一般到smail代码搜索 "sign"
+	deviceid一般为随机的，如果说不能随机要么有个设备注册的一个请求发送给了服务器，或者是跟签名相关的。
+
+	如果用自吐插件没有用，那么就是走的so层加密
+	那先搜一下 jeb2中的sign
+
+
+.method public getParams()q
+.registers 4
+00000000  new-instance        v0, q
+00000004  invoke-direct       q-><init>()V, v0
+0000000A  const-string        v1, "timestamp"
+0000000E  iget-object         v2, p0, HttpRequestEntity->timestamp:String
+00000012  invoke-virtual      q->a(String, String)V, v0, v1, v2
+00000018  const-string        v1, "token"
+0000001C  iget-object         v2, p0, HttpRequestEntity->token:String
+00000020  invoke-virtual      q->a(String, String)V, v0, v1, v2
+00000026  const-string        v1, "sign"   -------此处找到相关的 虽然有其他的sign 但是这个更符合我需要的
+0000002A  iget-object         v2, p0, HttpRequestEntity->sign:String
+0000002E  invoke-virtual      q->a(String, String)V, v0, v1, v2
+00000034  const-string        v1, "data"
+00000038  iget-object         v2, p0, HttpRequestEntity->data:String
+0000003C  invoke-virtual      q->a(String, String)V, v0, v1, v2
+00000042  const-string        v1, "client"
+00000046  iget-object         v2, p0, HttpRequestEntity->client:String
+0000004A  invoke-virtual      q->a(String, String)V, v0, v1, v2
+00000050  const-string        v1, "deviceid"
+00000054  iget-object         v2, p0, HttpRequestEntity->deviceid:String
+00000058  invoke-virtual      q->a(String, String)V, v0, v1, v2
+0000005E  const-string        v1, "channel"
+00000062  iget-object         v2, p0, HttpRequestEntity->channel:String
+00000066  invoke-virtual      q->a(String, String)V, v0, v1, v2
+0000006C  const-string        v1, "type"
+00000070  iget                v2, p0, HttpRequestEntity->type:I
+00000074  invoke-virtual      q->a(String, I)V, v0, v1, v2
+0000007A  return-object       v0
+.end method
+
+
+    public q getParams() {
+        q v0 = new q();
+        v0.a("timestamp", this.timestamp);
+        v0.a("token", this.token);
+        v0.a("sign", this.sign);  //那么就要找这个sign的赋值的地方
+        v0.a("data", this.data);
+        v0.a("client", this.client);
+        v0.a("deviceid", this.deviceid);
+        v0.a("channel", this.channel);
+        v0.a("type", this.type);
+        return v0;
+    }
+
+
+
+	    public HttpRequestEntity(Context arg5, HashMap arg6) {
+        super();
+        this.token = "";
+        String v0 = arg5.getString(2131296490);
+        String v1 = "";
+        if(c.a().c()) {
+            v1 = String.valueOf(c.a().g().user_id);
+            this.token = c.a().g().token;
+        }
+
+        this.timestamp = String.valueOf(new Date().getTime());
+		//可以发现在这里赋值了  而 timestamp 的值是一个时间戳
+		// this.getSign(v0, v1, this.token, this.timestamp);   
+		// v0 是          String v0 = arg5.getString(2131296490);
+		//可以直接hook这个方法看
+        this.sign = this.getSign(v0, v1, this.token, this.timestamp);   
+        this.data = new e().a(arg6);
+        this.client = "android";
+        this.vno = "5.1.0";
+        this.deviceid = ab.a(arg5);
+        this.channel = g.a(arg5);
+        this.type = 1;
+
+
+		
+		static {
+			System.loadLibrary("wtf");
+		}
+		//发现这个sign方法在so层并且在wtf.so中
+		public static native String getSign(String arg0, String arg1, String arg2) {
+		}
+
+
+		优先看V7的
+
+		发导出表有这个函数
+		Java_com_sichuanol_cbgc_util_SignManager_getSign 00000930 
+		虽然知道了函数的地址但是并不知道函数内部是怎么拼接而得到结果的
+
+		//说明V0没有用 this.token为空  timestamp是时间戳
+		this.sign = this.getSign(v0, v1, this.token, this.timestamp);   
+		Java_com_sichuanol_cbgc_util_SignManager_getSign 00000930 
+		//参数从第三个开始a3开始
+		int __fastcall Java_com_sichuanol_cbgc_util_SignManager_getSign(_JNIEnv *a1, int a2, int a3, int a4, int a5)
+
+
+		int __fastcall Java_com_sichuanol_cbgc_util_SignManager_getSign(_JNIEnv *a1, int a2, int a3, int a4, int a5)
+		{
+		  _JNIEnv *v5; // r4@1
+		  int v6; // r9@1
+		  int v7; // r8@1
+		  int v8; // r0@1
+		  int v9; // r5@1
+		  const char *v10; // r11@3
+		  const char *v11; // r6@3
+		  const char *v12; // r10@3
+		  int v13; // r0@3
+		  const char *v14; // r8@3
+		  size_t v15; // r5@3
+		  size_t v16; // r5@3
+		  size_t v17; // r5@3
+		  char *v18; // r9@3
+		  size_t v19; // r5@3
+		  size_t v20; // r5@3
+		  size_t v21; // r5@3
+		  size_t v22; // r0@3
+		  unsigned __int32 v23; // r0@3
+		  int result; // r0@3
+		  int v25; // r1@3
+		  jstring (__cdecl *v26)(JNIEnv *, const char *); // r2@5
+		  void **v27; // r0@5
+		  int v28; // [sp+8h] [bp-70h]@3
+		  int *v29; // [sp+Ch] [bp-6Ch]@3
+		  int v30; // [sp+10h] [bp-68h]@3
+		  int v31; // [sp+14h] [bp-64h]@3
+		  int v32; // [sp+18h] [bp-60h]@3
+		  int v33; // [sp+1Ch] [bp-5Ch]@3
+		  char v34; // [sp+23h] [bp-55h]@3
+		  char v35; // [sp+44h] [bp-34h]@3
+		  int v36; // [sp+54h] [bp-24h]@1
+
+		  v5 = a1;
+		  v6 = a3;
+		  v7 = a4;
+		  v36 = _stack_chk_guard;
+		  v8 = (a1->functions->FindClass)();
+		  v9 = v8;
+		  if ( !v8 )
+		  {
+			_android_log_print(4, "theCover", "find class error");
+			(v5->functions->ExceptionDescribe)(v5);
+			(v5->functions->ExceptionClear)(v5);
+			v26 = v5->functions->NewStringUTF;
+			v27 = &_stack_chk_guard_ptr;
+			goto LABEL_7;
+		  }
+
+		  //getAppSign 这个值是一个定值
+		  //除非版本变化值会改变
+		  if ( !(v5->functions->GetStaticMethodID)(v5, v8, "getAppSign", "()Ljava/lang/String;") )
+		  {
+			(v5->functions->ExceptionDescribe)(v5);
+			(v5->functions->ExceptionClear)(v5);
+			_android_log_print(4, "theCover", "find md5mtd error");
+			v26 = v5->functions->NewStringUTF;
+			v27 = &_stack_chk_guard_ptr;
+		LABEL_7:
+			v25 = v36;
+			result = **v27 - v36;
+			if ( !result )
+			  JUMPOUT(__CS__, v26);
+		LABEL_4:
+			_stack_chk_fail(result, v25);
+		  }
+		  v33 = _JNIEnv::CallStaticObjectMethod(v5, v9);
+		  v10 = (v5->functions->GetStringUTFChars)(v5);
+		  v11 = (v5->functions->GetStringUTFChars)(v5, v6, 0);
+		  v12 = (v5->functions->GetStringUTFChars)(v5, v7, 0);
+		  v32 = a5;
+		  v13 = (v5->functions->GetStringUTFChars)(v5);
+		  v31 = v7;
+		  v14 = v13;
+		  v15 = strlen(v10);
+		  v16 = v15 + strlen(v11);
+		  v17 = v16 + strlen(v12);
+		  v29 = &v28;
+		  v30 = v6;
+		  v18 = &v28 - ((strlen(v14) + v17 + 7) & 0xFFFFFFF8);
+		  v19 = strlen(v10);
+		  v20 = v19 + strlen(v11);
+		  v21 = v20 + strlen(v12);
+		  v22 = strlen(v14);
+		  _aeabi_memclr(v18, v21 + v22);
+		  //这里在进行拼接 但不要管，只要知道结果是什么样的就行了
+		  strcat(v18, v10);
+		  strcat(v18, v11);
+		  strcat(v18, v12);
+		  strcat(v18, v14);
+
+
+		  //第二个参数的赋值 
+		  v23 = strlen(v18);
+
+		  //MD5摘要
+		  //全部函数看起来只有这个函数有可能是要找的加密函数
+		  //int __fastcall MD5Digest(const char *s, unsigned __int32 a2, char *a3)
+		  //第一个是字符串 有可能是要加密的字符串
+		  //第二个是 int 可能是加密的程度
+		  //而第三个可能是加密后的结果指针
+		  MD5Digest(v18, v23, &v35);
+
+		  //Release 释放内存所以他没有用
+		  (v5->functions->ReleaseStringUTFChars)(v5, v30, v11);
+		  (v5->functions->ReleaseStringUTFChars)(v5, v31, v12);
+		  (v5->functions->ReleaseStringUTFChars)(v5, v32, v14);
+		  (v5->functions->ReleaseStringUTFChars)(v5, v33, v10);
+
+		  //函数内部发现跟v34没太大的关联 hook没必要
+		  get32MD5String(&v35, &v34);
+
+		  //这里使用占位符打印了log日志 这只是输出了 hook没必要
+		  _android_log_print(
+			6,
+			"theCover",
+			"app sign :%s \naccount : %s\ntoken : %s\nts : %s\nsrc %s \n result %s",
+			v10,
+			v11,
+			v12,
+			v14,
+			v18,
+			&v34);
+		  result = (v5->functions->NewStringUTF)(v5, &v34);
+		  v25 = _stack_chk_guard - v36;
+		  if ( _stack_chk_guard != v36 )
+			goto LABEL_4;
+		  return result;
+		}
+
+
+
+		//它本身是CString 因为要给java层使用所以要使用NewStringUTF转成jsting才能用
+		//发现 这个result 结果 有使用  NewStringUTF
+		//&v34 是结果
+		  result = (v5->functions->NewStringUTF)(v5, &v34);
+
+		  并且也在get32MD5String(&v35, &v34);发现了
+		      sprintf(&v6, "%02X", v2[v4]); //格式化
+			  strcat(v3, &v6); sprintf(&v6, "%02X", v2[v4]); //拼接
+			  来拼接和输出函数来输出
+
+
+
+    }
+
+================================================================================================================
