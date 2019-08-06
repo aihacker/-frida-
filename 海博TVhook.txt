@@ -1,0 +1,38 @@
+================================================================================================================
+
+
+fe9fc289c3ff0af142b6d3bead98a923&RzhGSFhlZFBnbDRpN3NBMnJmVUlTeGZhQjBOQjVXSkM=&3.0.4&1563688286491HfDl7Q
+      snprintf(
+        v9,
+        n,
+        "%s&%s&%s&%s",
+        "fe9fc289c3ff0af142b6d3bead98a923",
+        "RzhGSFhlZFBnbDRpN3NBMnJmVUlTeGZhQjBOQjVXSkM=",
+        v4,
+        s);
+      sha1_encode(v9, v14 + 79, &ptr);
+
+
+	  fe9fc289c3ff0af142b6d3bead98a923  &  RzhGSFhlZFBnbDRpN3NBMnJmVUlTeGZhQjBOQjVXSkM=  & 3.0.4 & 1563688286491HfDl7Q
+	  --> sha1 加密  --> 27ad52b9e46537d60d8f01d2b35a2bc6c3219a85
+	  --> base64 加密 --> MjdhZDUyYjllNDY1MzdkNjBkOGYwMWQyYjM1YTJiYzZjMzIxOWE4NQ==
+
+	  X-API-SIGNATURE  : MjdhZDUyYjllNDY1MzdkNjBkOGYwMWQyYjM1YTJiYzZjMzIxOWE4NQ==
+
+
+	  也就是 刚刚的登录包了 
+
+	GET /haibo4/m_check_mobile_bind.php?system_version=5.1.1&app_version=3.0.4&client_id_android=7672a0b2c85dbd1174a51d3c7a61d43c&locating_city=%E7%A6%8F%E5%B7%9E&appkey=OU4VuJgmGkqFzelCaueFLHll1sZJpOG4&version=3.0.4&appid=9&location_city=%E7%A6%8F%E5%B7%9E&device_token=68a27f39e15d1cc498b6fb6e8197c44b&phone_models=SM-G9350&package_name=com.hoge.android.app.fujian&tel=18017874678 HTTP/1.1
+	Accept-Language: zh-CN,zh;q=0.8
+	User-Agent: Dalvik/2.1.0 (Linux; U; Android 5.1.1; SM-G9350 Build/LMY48Z) m2oSmartCity_83 1.0.0
+	X-API-TIMESTAMP: 1563688286491HfDl7Q
+	X-API-SIGNATURE: MjdhZDUyYjllNDY1MzdkNjBkOGYwMWQyYjM1YTJiYzZjMzIxOWE4NQ==
+	X-API-VERSION: 3.0.4
+	X-AUTH-TYPE: sha1
+	X-API-KEY: fe9fc289c3ff0af142b6d3bead98a923
+	Host: mobile.fjtv.net
+	Connection: Keep-Alive
+	Accept-Encoding: gzip
+
+
+================================================================================================================
