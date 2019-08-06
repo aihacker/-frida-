@@ -1,0 +1,248 @@
+================================================================================================================
+
+//分析注册包
+
+
+http://mobile.fjtv.net/haibo4/m_check_mobile_bind.php?system_version=5.1.1&app_version=3.0.4&client_id_android=7672a0b2c85dbd1174a51d3c7a61d43c&locating_city=%E7%A6%8F%E5%B7%9E&appkey=OU4VuJgmGkqFzelCaueFLHll1sZJpOG4&version=3.0.4&appid=9&location_city=%E7%A6%8F%E5%B7%9E&device_token=68a27f39e15d1cc498b6fb6e8197c44b&phone_models=SM-G9350&package_name=com.hoge.android.app.fujian&tel=18017874678
+
+
+
+
+
+
+system_version	5.1.1
+app_version	3.0.4
+client_id_android	7672a0b2c85dbd1174a51d3c7a61d43c   这个一般固定的 可以随机 一个设备一个ID
+locating_city	福州
+appkey	OU4VuJgmGkqFzelCaueFLHll1sZJpOG4	可能是接入了什么app一个接入的key
+version	3.0.4
+appid	9
+location_city	福州
+device_token	68a27f39e15d1cc498b6fb6e8197c44b	设备id 
+phone_models	SM-G9350
+package_name	com.hoge.android.app.fujian
+tel	18017874678
+
+
+真正的SIGNATURE签名在请求头协议里面
+X-API-VERSION: 3.0.4
+X-API-KEY: fe9fc289c3ff0af142b6d3bead98a923
+X-API-TIMESTAMP: 1563688286491HfDl7Q
+X-API-SIGNATURE: MjdhZDUyYjllNDY1MzdkNjBkOGYwMWQyYjM1YTJiYzZjMzIxOWE4NQ==   -->  BASE64解码：	27ad52b9e46537d60d8f01d2b35a2bc6c3219a85    40个十六进制的字符
+X-AUTH-TYPE: sha1
+可以发现是一个BASE64的加密
+
+试试用JEB 搜 "X-API-SIGNATURE"
+
+
+		000000BA  const-string        v10, "X-API-SIGNATURE"
+		000000BE  invoke-interface    Map->put(Object, Object)Object, v2, v10, v7
+		000000C4  const-string        v10, "X-API-TIMESTAMP"
+		000000C8  invoke-interface    Map->put(Object, Object)Object, v2, v10, v4
+		000000CE  const-string        v11, "X-API-KEY"
+		000000D2  sget-object         v10, Variable->MODULE_API_KEY:String
+		000000D6  invoke-static       TextUtils->isEmpty(CharSequence)Z, v10
+		000000DC  move-result         v10
+		000000DE  if-eqz              v10, :14C
+		:E2
+		000000E2  sget-object         v10, Variable->API_KEY:String
+		:E6
+		000000E6  invoke-interface    Map->put(Object, Object)Object, v2, v11, v10
+		000000EC  const-string        v10, "X-AUTH-TYPE"
+		000000F0  const-string/jumbo  v11, "    ======"
+		000000F6  invoke-interface    Map->put(Object, Object)Object, v2, v10, v11
+		000000FC  const-string        v10, "X-API-VERSION"
+		00000100  invoke-interface    Map->put(Object, Object)Object, v2, v10, v9
+		00000106  return-object       v2
+
+
+
+
+        ((Map)v2).put("X-API-SIGNATURE", v7);
+        ((Map)v2).put("X-API-TIMESTAMP", v4);
+        String v11 = "X-API-KEY";
+        String v10 = TextUtils.isEmpty(Variable.MODULE_API_KEY) ? Variable.API_KEY : Variable.MODULE_API_KEY;
+        ((Map)v2).put(v11, v10);
+        ((Map)v2).put("X-AUTH-TYPE", "    ======");
+        ((Map)v2).put("X-API-VERSION", v9);
+        return ((Map)v2);
+
+		======================================================================================
+		发现有2处 put.put("X-API-SIGNATURE", v7);
+		但这个更符合需要的 因为 又put了 TIMESTAMP
+		一般签名算法特点：对提交的数据进行签名，那么他的一些加密数据会出现在包内
+		X-API-VERSION: 3.0.4  -->   String v9 = Util.getVersionName(arg14);
+ 		======================================================================================
+
+    public static Map getRequestHeader(Context arg14) {
+        Object v7;
+        Object v5;
+        HashMap v2 = new HashMap();
+        String v9 = Util.getVersionName(arg14);
+        String v4 = SecurityUtil.getRandomData(6);
+        try {
+
+			//这里加载的类是 com.hoge.android.jni.Utils  所以现在去看这个类
+
+			//发现了这个函数
+			int __fastcall Java_com_hoge_android_jni_Utils_signature(int a1, int a2, int a3, int a4)
+			int __fastcall signature(_JNIEnv *a1, int a2, int a3)
+
+
+
+			snprintf()，函数原型为int snprintf(char *str, size_t size, const char *format, ...)。
+			将可变参数 “…” 按照format的格式格式化为字符串，然后再将其拷贝至str中。
+			可以考虑hook这个函数 因为经常使用
+			      snprintf(
+					v9,
+					n,
+					"%s&%s&%s&%s",
+					"fe9fc289c3ff0af142b6d3bead98a923",
+					"RzhGSFhlZFBnbDRpN3NBMnJmVUlTeGZhQjBOQjVXSkM=",
+					v4,
+					s);
+
+
+					so代码下方
+
+
+			public class Utils {
+				public String version;
+
+				static {
+					System.loadLibrary("m2o_jni");   //这里加载了 m2o_jni so 那么我们就找 这个so
+				}
+
+				public Utils() {
+					super();
+					this.version = "0.0.1";
+				}
+
+				public native String decode(String arg1) {
+				}
+
+				//看起来这个就是签名了
+				public native String signature(String arg1, String arg2) {
+				}
+
+				public native void verify(Context arg1) {
+				}
+			}
+
+
+
+            Class v3 = Class.forName("com.hoge.android.jni.Utils");
+            v3.getDeclaredMethod("AuthenticationCallback", Context.class).invoke(v3.newInstance(), arg14);
+			//一般看v9 vc
+            v5 = v3.getDeclaredMethod("\"0\"", String.class, String.class).invoke(v3.newInstance(), v9, v4);
+        }
+        catch(InvocationTargetException v1) {
+            v1.printStackTrace();
+        }
+        catch(InstantiationException v1_1) {
+            v1_1.printStackTrace();
+        }
+        catch(IllegalAccessException v1_2) {
+            v1_2.printStackTrace();
+        }
+        catch(NoSuchMethodException v1_3) {
+            v1_3.printStackTrace();
+        }
+        catch(ClassNotFoundException v1_4) {
+            v1_4.printStackTrace();
+        }
+
+        if(v5 == null) {
+            v7 = null;
+        }
+        else {
+            String v7_1 = Base64.encode(((String)v5).getBytes());
+        }
+
+
+		//签名算法在此处
+
+        ((Map)v2).put("X-API-SIGNATURE", v7);  
+        ((Map)v2).put("X-API-TIMESTAMP", v4);  //这个是时间戳 + 6位随机岁
+        String v11 = "X-API-KEY";
+        String v10 = TextUtils.isEmpty(Variable.MODULE_API_KEY) ? Variable.API_KEY : Variable.MODULE_API_KEY;
+        ((Map)v2).put(v11, v10);
+        ((Map)v2).put("X-AUTH-TYPE", "    ======");
+        ((Map)v2).put("X-API-VERSION", v9);
+        return ((Map)v2);
+    }
+
+
+
+
+
+	so ：
+
+		int __fastcall signature(_JNIEnv *a1, int a2, int a3)
+		{
+		  _JNIEnv *v3; // r4@1
+		  const char *v4; // r7@3
+		  int v5; // r0@3
+		  size_t v6; // r5@5
+		  size_t v7; // r0@5
+		  void *v8; // r0@5
+		  char *v9; // r5@5
+		  int v10; // r6@7
+		  char *s; // [sp+14h] [bp-34h]@3
+		  int n; // [sp+18h] [bp-30h]@5
+		  size_t v14; // [sp+1Ch] [bp-2Ch]@5
+		  int v15; // [sp+20h] [bp-28h]@1
+		  int v16; // [sp+24h] [bp-24h]@1
+		  void *ptr; // [sp+2Ch] [bp-1Ch]@1
+
+		  v3 = a1;
+		  v15 = a2;
+		  v16 = a3;
+		  ptr = 0;
+		  if ( !is_initialised )
+			exit(1);
+		  v4 = (a1->functions->GetStringUTFChars)();
+		  v5 = (v3->functions->GetStringUTFChars)(v3, v16, 0);
+		  s = v5;
+		  if ( v4 )
+		  {
+			if ( v5 && (v6 = strlen(v4), v7 = strlen(s) + v6, v14 = v7, n = v7 + 80, v8 = malloc(v7 + 80), (v9 = v8) != 0) )
+			{
+			  memset(v8, 0, n);
+			  //转化成固定格式给v9
+			  snprintf(
+				v9,
+				n,
+				"%s&%s&%s&%s",
+				"fe9fc289c3ff0af142b6d3bead98a923",
+				"RzhGSFhlZFBnbDRpN3NBMnJmVUlTeGZhQjBOQjVXSkM=",
+				v4,
+				s);
+			  //关键函数  sha1_encode    结果为&ptr
+			  sha1_encode(v9, v14 + 79, &ptr);
+			  if ( ptr )
+				v10 = (v3->functions->NewStringUTF)(v3);
+			  else
+				v10 = 0;
+			}
+			else
+			{
+			  v10 = 0;
+			  v9 = 0;
+			}
+			(v3->functions->ReleaseStringUTFChars)(v3, v15, v4);
+		  }
+		  else
+		  {
+			v10 = 0;
+			v9 = 0;
+		  }
+		  if ( s )
+			(v3->functions->ReleaseStringUTFChars)(v3, v16, s);
+		  if ( v9 )
+			free(v9);
+		  if ( ptr )
+			free(ptr);
+		  return v10;
+		}
+================================================================================================================
